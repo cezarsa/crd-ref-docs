@@ -54,6 +54,7 @@ const (
 type RenderConfig struct {
 	KnownTypes        []*KnownType `json:"knownTypes"`
 	KubernetesVersion string       `json:"kubernetesVersion"`
+	MarkdownComments  bool         `json:"markdownComments"`
 }
 
 type KnownType struct {

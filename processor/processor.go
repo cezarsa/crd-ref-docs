@@ -22,6 +22,7 @@ import (
 	"go/ast"
 	"go/token"
 	gotypes "go/types"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -538,7 +539,7 @@ func parseMarkers(markers markers.MarkerValues) (string, []string) {
 	for _, name := range markerNames {
 		value := markers[name][len(markers[name])-1]
 
-		if strings.HasPrefix(name, "kubebuilder:validation:") {
+		if isValidationMarker(name) {
 			name := strings.TrimPrefix(name, "kubebuilder:validation:")
 
 			switch name {
@@ -549,7 +550,11 @@ func parseMarkers(markers markers.MarkerValues) (string, []string) {
 			case "XValidation":
 				continue
 			}
-			validation = append(validation, fmt.Sprintf("%s: %v", name, value))
+			if reflect.ValueOf(value).IsZero() {
+				validation = append(validation, name)
+			} else {
+				validation = append(validation, fmt.Sprintf("%s: %v", name, value))
+			}
 		}
 
 		if name == "kubebuilder:default" {
@@ -565,6 +570,24 @@ func parseMarkers(markers markers.MarkerValues) (string, []string) {
 	}
 
 	return defaultValue, validation
+}
+
+func isValidationMarker(name string) bool {
+	if name == "kubebuilder:default" || name == "kubebuilder:example" {
+		// These will not be handled as validations.
+		return false
+	}
+	for _, marker := range crdmarkers.ValidationMarkers {
+		if marker.Name == name {
+			return true
+		}
+	}
+	for _, marker := range crdmarkers.FieldOnlyMarkers {
+		if marker.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *processor) parseMarkers() {

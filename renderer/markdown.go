@@ -27,6 +27,7 @@ import (
 	"github.com/elastic/crd-ref-docs/config"
 	"github.com/elastic/crd-ref-docs/templates"
 	"github.com/elastic/crd-ref-docs/types"
+	"github.com/russross/blackfriday/v2"
 )
 
 type MarkdownRenderer struct {
@@ -141,6 +142,11 @@ func (m *MarkdownRenderer) RenderGVLink(gv types.GroupVersionDetails) string {
 }
 
 func (m *MarkdownRenderer) RenderFieldDoc(text string) string {
+	if m.conf.Render.MarkdownComments {
+		result := blackfriday.Run([]byte(text))
+		return strings.ReplaceAll(string(result), "\n", " ")
+	}
+
 	// Escape the pipe character, which has special meaning for Markdown as a way to format tables
 	// so that including | in a comment does not result in wonky tables.
 	out := strings.ReplaceAll(text, "|", "\\|")
